@@ -42,10 +42,10 @@ function App() {
   }
 
   const tabs = [
-    { id: 'search', label: 'Search & Compare', icon: '🔍', description: 'Find best deals' },
-    { id: 'products', label: 'All Products', icon: '📦', description: 'Browse catalog' },
-    { id: 'history', label: 'Price History', icon: '📈', description: 'Track trends' },
-    { id: 'prediction', label: 'Price Prediction', icon: '🎯', description: 'Forecast prices' },
+    { id: 'search', label: 'Search & Compare', icon: '', description: 'Find best deals' },
+    { id: 'products', label: 'All Products', icon: '', description: 'Browse catalog' },
+    { id: 'history', label: 'Price History', icon: '', description: 'Track trends' },
+    { id: 'prediction', label: 'Price Prediction', icon: '', description: 'Forecast prices' },
   ]
 
   return (

@@ -171,50 +171,51 @@ def compare_prices(product_name: str = Query(..., description="Product name to s
         # Step 1: Search on all websites
         comparison = scrape_all_websites(product_name)
         
-        # Ensure we have at least some data
         if not comparison or len(comparison) == 0:
-            # Emergency fallback - create basic comparison data
-            from modules.scraper import get_fallback_data
-            fallback = get_fallback_data(product_name)
-            comparison = {
-                "Amazon": {"price": fallback["price"], "link": f"https://www.amazon.in/s?k={product_name}"},
-                "Flipkart": {"price": fallback["price"] + 500, "link": f"https://www.flipkart.com/search?q={product_name}"},
-                "Snapdeal": {"price": fallback["price"] - 500, "link": f"https://www.snapdeal.com/search?keyword={product_name}"}
-            }
+            raise HTTPException(
+                status_code=404,
+                detail=f"Unable to search for product '{product_name}'"
+            )
         
-        # Step 2: Find cheapest option
+        # Step 2: Find cheapest option (only from available products)
         cheapest = find_cheapest_option(comparison)
         
-        return {
-            "status": "success",
-            "product": product_name,
-            "comparison": comparison,
-            "cheapest": cheapest
-        }
-    
-    except HTTPException:
-        raise
-    except Exception as e:
-        # Log the error but still try to return something useful
-        print(f"[-] Error in compare_prices endpoint: {str(e)}")
+        # Check if at least one product is available
+        available_count = sum(1 for v in comparison.values() if v.get('available', False))
         
-        # Return fallback data instead of error
-        from modules.scraper import get_fallback_data
-        fallback = get_fallback_data(product_name)
-        comparison = {
-            "Amazon": {"price": fallback["price"], "link": f"https://www.amazon.in/s?k={product_name}"},
-            "Flipkart": {"price": fallback["price"] + 500, "link": f"https://www.flipkart.com/search?q={product_name}"},
-            "Snapdeal": {"price": fallback["price"] - 500, "link": f"https://www.snapdeal.com/search?keyword={product_name}"}
-        }
-        cheapest = find_cheapest_option(comparison)
-        
-        return {
+        response = {
             "status": "success",
             "product": product_name,
             "comparison": comparison,
             "cheapest": cheapest,
-            "note": "Using estimated prices due to scraping issues"
+            "available_count": available_count,
+            "total_checked": len(comparison)
         }
+        
+        # Check if we're showing estimated prices
+        has_estimated = any(v.get('estimated', False) for v in comparison.values())
+        
+        # Add note about estimated prices or availability
+        if has_estimated:
+            response["note"] = "⚠️ Showing estimated prices as the product was not found on retailer websites. These are approximate market prices for reference."
+            response["estimated"] = True
+        elif available_count == 0:
+            response["note"] = "Product not available on any website. Try a different search term."
+        
+        return response
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        # Log the error
+        print(f"[-] Error in compare_prices endpoint: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error searching for product: {str(e)}"
+        )
 
 
 # ============================================================================
@@ -436,10 +437,9 @@ if __name__ == "__main__":
     import uvicorn
     
     print("="*60)
-    print("🚀 PRICE PREDICTION API STARTING")
+    print("PRICE PREDICTION API STARTING")
     print("="*60)
-    print("📍 Server: http://127.0.0.1:8000")
-    print("📚 Docs: http://127.0.0.1:8000/docs")
+    print("Server: http://127.0.0.1:8000")
     print("="*60)
     
     uvicorn.run(app, host="127.0.0.1", port=8000)

@@ -41,10 +41,26 @@ function ProductsList({ onSelectProduct }) {
   // Get unique categories
   const categories = ['all', ...new Set(products.map(p => p.category))].filter(Boolean)
 
+  // Get icon for category
+  const getCategoryIcon = (category) => {
+    const icons = {
+      'Smartphones': '📱',
+      'Headphones': '🎧',
+      'Laptops': '💻',
+      'Smartwatches': '⌚',
+      'Tablets': '📱',
+      'Cameras': '📷',
+      'Gaming': '🎮',
+      'Audio': '🔊',
+      'Accessories': '🔌'
+    }
+    return icons[category] || '📦'
+  }
+
   // Filter products by category and search term
   const filteredProducts = products
     .filter(p => selectedCategory === 'all' || p.category === selectedCategory)
-    .filter(p => p.name?.toLowerCase().includes(searchTerm.toLowerCase()))
+    .filter(p => p.product_name?.toLowerCase().includes(searchTerm.toLowerCase()))
 
   if (loading && products.length === 0) {
     return (
@@ -144,7 +160,7 @@ function ProductsList({ onSelectProduct }) {
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
-              {category === 'all' ? '🌐 All Products' : category}
+              {category === 'all' ? '🌐 All Products' : `${getCategoryIcon(category)} ${category}`}
             </button>
           ))}
         </div>
@@ -170,33 +186,36 @@ function ProductsList({ onSelectProduct }) {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredProducts.map(product => (
             <div 
-              key={product.id} 
+              key={product.product_id} 
               className="bg-white rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 border border-gray-100 overflow-hidden group hover:scale-105"
             >
               <div className="p-6">
+                {/* Category Icon */}
+                <div className="flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-100 to-purple-100 rounded-full mb-4 text-3xl mx-auto">
+                  {getCategoryIcon(product.category)}
+                </div>
+                
                 {/* Product Header */}
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex-1">
-                    <h3 className="text-lg font-bold text-gray-900 mb-1 line-clamp-2 group-hover:text-blue-600 transition-colors">
-                      {product.name}
-                    </h3>
-                    {product.category && (
-                      <span className="inline-block px-3 py-1 text-xs font-semibold rounded-full bg-gradient-to-r from-blue-100 to-purple-100 text-blue-700">
-                        {product.category}
-                      </span>
-                    )}
-                  </div>
+                <div className="text-center mb-4">
+                  <h3 className="text-lg font-bold text-gray-900 mb-2 group-hover:text-blue-600 transition-colors">
+                    {product.product_name}
+                  </h3>
+                  {product.category && (
+                    <span className="inline-block px-3 py-1 text-xs font-semibold rounded-full bg-gradient-to-r from-blue-100 to-purple-100 text-blue-700">
+                      {product.category}
+                    </span>
+                  )}
                 </div>
 
                 {/* Product ID */}
-                <div className="mb-4 p-3 bg-gray-50 rounded-lg">
-                  <p className="text-sm text-gray-500">Product ID</p>
-                  <p className="text-sm font-mono font-semibold text-gray-900">#{product.id}</p>
+                <div className="mb-4 p-3 bg-gray-50 rounded-lg text-center">
+                  <p className="text-xs text-gray-500 mb-1">Product ID</p>
+                  <p className="text-sm font-mono font-semibold text-gray-900">#{product.product_id}</p>
                 </div>
 
                 {/* Action Button */}
                 <button 
-                  onClick={() => onSelectProduct(product.id)}
+                  onClick={() => onSelectProduct(product.product_id)}
                   className="w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white py-3 px-4 rounded-lg font-semibold hover:shadow-lg hover:scale-105 active:scale-95 transition-all duration-200 flex items-center justify-center space-x-2"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

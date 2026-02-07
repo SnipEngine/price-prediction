@@ -1,7 +1,7 @@
 import React from 'react'
 
 function ComparisonResults({ data }) {
-  const { product, comparison, cheapest, note } = data
+  const { product, comparison, cheapest, note, available_count, total_checked } = data
 
   console.log('ComparisonResults received:', data) // Debug log
 
@@ -19,7 +19,12 @@ function ComparisonResults({ data }) {
 
   // Convert comparison object to array for easier iteration
   const priceEntries = Object.entries(comparison)
-  const maxSavings = cheapest?.savings ? Math.max(...Object.values(cheapest.savings)) : 0
+  
+  // Calculate max savings only from available products with non-null savings
+  const availableSavings = cheapest?.savings 
+    ? Object.values(cheapest.savings).filter(s => s !== null && s !== undefined)
+    : []
+  const maxSavings = availableSavings.length > 0 ? Math.max(...availableSavings) : 0
 
   return (
     <div className="space-y-6">
@@ -49,8 +54,13 @@ function ComparisonResults({ data }) {
             </svg>
           </div>
           <div className="flex-1">
-            <h3 className="text-lg font-bold text-green-900">Successfully found prices!</h3>
-            <p className="text-green-700">Comparing real-time prices from {priceEntries.length} websites</p>
+            <h3 className="text-lg font-bold text-green-900">Search Complete!</h3>
+            <p className="text-green-700">
+              {available_count > 0 
+                ? `Found real prices on ${available_count} out of ${total_checked || priceEntries.length} websites`
+                : `Checked ${total_checked || priceEntries.length} websites - no listings found`
+              }
+            </p>
           </div>
         </div>
       </div>
@@ -100,41 +110,70 @@ function ComparisonResults({ data }) {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {priceEntries.map(([website, priceData]) => {
             const isCheapest = cheapest?.website === website
+            const isAvailable = priceData.available !== false && priceData.price !== null
+            
             return (
               <div 
                 key={website} 
-                className={`relative rounded-xl p-6 transition-all duration-300 hover:scale-105 ${
-                  isCheapest 
-                    ? 'bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-400 shadow-xl' 
-                    : 'bg-gray-50 border-2 border-gray-200 hover:border-blue-300'
+                className={`relative rounded-xl p-6 transition-all duration-300 ${
+                  !isAvailable
+                    ? 'bg-gray-100 border-2 border-gray-300 opacity-75'
+                    : isCheapest 
+                      ? 'bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-400 shadow-xl hover:scale-105' 
+                      : 'bg-gray-50 border-2 border-gray-200 hover:border-blue-300 hover:scale-105'
                 }`}
               >
-                {isCheapest && (
+                {isCheapest && isAvailable && (
                   <div className="absolute -top-3 -right-3">
                     <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-green-500 text-white shadow-lg">
                       ✓ Best Deal
                     </span>
                   </div>
                 )}
+                
+                {!isAvailable && (
+                  <div className="absolute -top-3 -right-3">
+                    <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-gray-500 text-white shadow-lg">
+                      Not Listed
+                    </span>
+                  </div>
+                )}
+                
                 <div className="mb-4">
                   <h4 className="text-lg font-bold text-gray-900">{website}</h4>
                 </div>
+                
                 <div className="mb-4">
                   <p className="text-sm text-gray-500 mb-1">Price</p>
-                  <p className={`text-3xl font-bold ${
-                    isCheapest ? 'text-green-600' : 'text-gray-900'
-                  }`}>
-                    ₹{priceData.price?.toLocaleString()}
-                  </p>
+                  {isAvailable ? (
+                    <p className={`text-3xl font-bold ${
+                      isCheapest ? 'text-green-600' : 'text-gray-900'
+                    }`}>
+                      ₹{priceData.price?.toLocaleString()}
+                    </p>
+                  ) : (
+                    <div className="text-center py-2">
+                      <svg className="w-12 h-12 text-gray-400 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                      <p className="text-lg font-semibold text-gray-500">Not Available</p>
+                      <p className="text-xs text-gray-400 mt-1">Product not found</p>
+                    </div>
+                  )}
                 </div>
+                
                 {priceData.link && (
                   <a 
                     href={priceData.link} 
                     target="_blank" 
                     rel="noopener noreferrer"
-                    className="block w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white py-2 px-4 rounded-lg font-semibold text-center hover:shadow-lg transition-all hover:scale-105"
+                    className={`block w-full py-2 px-4 rounded-lg font-semibold text-center transition-all ${
+                      isAvailable
+                        ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white hover:shadow-lg hover:scale-105'
+                        : 'bg-gray-400 text-gray-600 cursor-default'
+                    }`}
                   >
-                    View Deal →
+                    {isAvailable ? 'View Deal →' : 'View Search →'}
                   </a>
                 )}
               </div>
@@ -153,12 +192,17 @@ function ComparisonResults({ data }) {
             Savings Calculator
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {Object.entries(cheapest.savings).map(([website, savings]) => (
-              <div key={website} className="flex items-center justify-between p-4 bg-green-50 rounded-lg border border-green-200">
-                <span className="font-semibold text-gray-900">{website}</span>
-                <span className="text-lg font-bold text-green-600">Save ₹{savings.toLocaleString()}</span>
-              </div>
-            ))}
+            {Object.entries(cheapest.savings)
+              .filter(([_, savings]) => savings !== null && savings !== undefined)
+              .map(([website, savings]) => (
+                <div key={website} className="flex items-center justify-between p-4 bg-green-50 rounded-lg border border-green-200">
+                  <span className="font-semibold text-gray-900">{website}</span>
+                  <span className="text-lg font-bold text-green-600">
+                    {savings === 0 ? 'Best Price!' : `Save ₹${savings.toLocaleString()}`}
+                  </span>
+                </div>
+              ))
+            }
           </div>
         </div>
       )}

@@ -109,7 +109,7 @@ class PricePredictionModel:
         
         # Convert dates to numbers (days since first date)
         # ML needs numbers, not text!
-        first_date = daily_prices['date'].min()
+        first_date = pd.Timestamp(daily_prices['date'].min())
         days_since_start = (daily_prices['date'] - first_date).dt.days.values
         
         # X: Input features (we use days as our feature)
@@ -121,7 +121,8 @@ class PricePredictionModel:
         
         # Store for later use
         self.price_history = daily_prices
-        self.dates = daily_prices['date'].values
+        # Convert dates to pandas datetime series for proper datetime arithmetic
+        self.dates = pd.to_datetime(daily_prices['date'])
         
         return X, Y, daily_prices['date'].values
     
@@ -198,11 +199,12 @@ class PricePredictionModel:
             raise Exception("Model must be trained first!")
         
         # Calculate days from start date to the future date
-        last_date = self.dates[-1]
-        future_date = last_date + timedelta(days=days_ahead)
+        # self.dates is now a pandas Series, so we can use .iloc for last/first access
+        last_date = self.dates.iloc[-1]
+        future_date = last_date + pd.Timedelta(days=days_ahead)
         
         # Days since first date
-        first_date = self.dates[0]
+        first_date = self.dates.iloc[0]
         future_days = (future_date - first_date).days
         
         # Reshape for prediction

@@ -43,10 +43,10 @@ function SearchProducts({ onSearch }) {
   }
 
   const popularSearches = [
-    { name: 'iPhone 15 Pro', icon: '📱' },
-    { name: 'Samsung Galaxy S24', icon: '📱' },
-    { name: 'MacBook Pro M3', icon: '💻' },
-    { name: 'Sony WH-1000XM5', icon: '🎧' },
+    { name: 'iPhone 15 Pro', icon: '' },
+    { name: 'Samsung Galaxy S24', icon: '' },
+    { name: 'MacBook Pro M3', icon: '' },
+    { name: 'Sony WH-1000XM5', icon: '' },
   ]
 
   return (

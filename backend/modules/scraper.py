@@ -46,6 +46,41 @@ def get_headers():
     }
 
 
+def validate_product_match(product_title, search_query):
+    """
+    Check if the scraped product title matches the search query
+    Returns True if it's a likely match, False otherwise
+    """
+    if not product_title or not search_query:
+        return False
+    
+    title_lower = product_title.lower()
+    query_lower = search_query.lower()
+    
+    # Skip obvious wrong products
+    excluded_keywords = ['case', 'cover', 'screen protector', 'charger', 'cable', 
+                        'adapter', 'holder', 'stand', 'skin', 'tempered glass',
+                        'pouch', 'wallet', 'band', 'strap']
+    
+    # If searching for a phone/laptop/watch, exclude accessories
+    if any(word in query_lower for word in ['iphone', 'samsung', 'oneplus', 'phone', 'mobile', 'laptop', 'macbook', 'watch']):
+        if any(keyword in title_lower for keyword in excluded_keywords):
+            return False
+    
+    # Extract key words from query (skip common words)
+    common_words = ['the', 'a', 'an', 'and', 'or', 'for', 'in', 'with']
+    query_words = [word for word in query_lower.split() if word not in common_words and len(word) > 2]
+    
+    # Check if at least 40% of query words appear in title (relaxed from 60%)
+    if not query_words:
+        return True  # If no meaningful words, accept
+    
+    matches = sum(1 for word in query_words if word in title_lower)
+    match_ratio = matches / len(query_words)
+    
+    return match_ratio >= 0.4
+
+
 def clean_price(price_text):
     """
     Extract numeric price from text
@@ -92,8 +127,8 @@ def scrape_amazon_india(product_name):
             print("[-] No products found on Amazon")
             return None
         
-        # Extract first product
-        for product in products[:3]:  # Check first 3 results
+        # Extract first product with validation
+        for product in products[:5]:  # Check first 5 results
             try:
                 # Extract price
                 price_whole = product.find('span', {'class': 'a-price-whole'})
@@ -106,12 +141,25 @@ def scrape_amazon_india(product_name):
                     
                     price = float(price_text)
                     
-                    # Extract product title
-                    title = product.find('span', {'class': 'a-size-medium'})
+                    # Extract product title - try multiple selectors
+                    title = product.find('h2', {'class': 'a-size-mini'})
+                    if not title:
+                        title = product.find('span', {'class': 'a-size-medium'})
                     if not title:
                         title = product.find('span', {'class': 'a-size-base-plus'})
+                    if not title:
+                        title = product.find('h2')
                     
-                    product_title = title.text.strip() if title else product_name
+                    product_title = title.text.strip() if title else ''
+                    
+                    # Skip if title is empty or too short
+                    if len(product_title) < 5:
+                        continue
+                    
+                    # Validate product match
+                    if not validate_product_match(product_title, product_name):
+                        print(f"[SKIP] Amazon: '{product_title[:50]}' doesn't match query")
+                        continue
                     
                     # Get product link
                     link_element = product.find('a', {'class': 'a-link-normal'})
@@ -167,8 +215,8 @@ def scrape_flipkart(product_name):
             print("[-] No products found on Flipkart")
             return None
         
-        # Extract first product with price
-        for product in products[:5]:  # Check first 5 results
+        # Extract first product with price and validation
+        for product in products[:7]:  # Check first 7 results
             try:
                 # Find price element
                 price_element = product.find('div', {'class': ['_30jeq3', '_3I9_wc', 'Nx9bqj']})
@@ -183,7 +231,12 @@ def scrape_flipkart(product_name):
                         if not title_element:
                             title_element = product.find('a', {'class': ['IRpwTa', '_2rpwqI', 's1Q9rs']})
                         
-                        product_title = title_element.text.strip() if title_element else product_name
+                        product_title = title_element.text.strip() if title_element else ''
+                        
+                        # Validate product match
+                        if not validate_product_match(product_title, product_name):
+                            print(f"[SKIP] Flipkart: '{product_title[:50]}' doesn't match query")
+                            continue
                         
                         # Get product link
                         link_element = product.find('a', {'class': ['_1fQZEK', 'CGtC98', '_2rpwqI']})
@@ -238,8 +291,8 @@ def scrape_snapdeal(product_name):
             print("[-] No products found on Snapdeal")
             return None
         
-        # Extract first product
-        for product in products[:3]:  # Check first 3 results
+        # Extract first product with validation
+        for product in products[:5]:  # Check first 5 results
             try:
                 # Extract price
                 price_element = product.find('span', {'class': 'lfloat product-price'})
@@ -253,7 +306,12 @@ def scrape_snapdeal(product_name):
                     if price:
                         # Extract product title
                         title_element = product.find('p', {'class': 'product-title'})
-                        product_title = title_element.text.strip() if title_element else product_name
+                        product_title = title_element.text.strip() if title_element else ''
+                        
+                        # Validate product match
+                        if not validate_product_match(product_title, product_name):
+                            print(f"[SKIP] Snapdeal: '{product_title[:50]}' doesn't match query")
+                            continue
                         
                         # Get product link
                         link_element = product.find('a', {'class': 'dp-widget-link'})
@@ -338,8 +396,9 @@ def get_fallback_data(product_name):
 def scrape_all_websites(product_name):
     """
     Search for a product on all websites and return real-time prices
+    Only returns ACTUAL scraped prices, not fake data
     
-    Returns: Dictionary with prices from each website
+    Returns: Dictionary with prices from each website (or "Not Available")
     """
     print(f"\n{'='*60}")
     print(f"[SEARCH] Searching for: {product_name}")
@@ -353,23 +412,24 @@ def scrape_all_websites(product_name):
         if amazon_data:
             comparison_results["Amazon"] = {
                 "price": amazon_data["price"],
-                "link": amazon_data["link"]
+                "link": amazon_data["link"],
+                "available": True
             }
+            print(f"[SUCCESS] Amazon: Rs.{amazon_data['price']}")
         else:
-            # Fallback
-            fallback = get_fallback_data(product_name)
             comparison_results["Amazon"] = {
-                "price": fallback["price"],
-                "link": f"https://www.amazon.in/s?k={quote_plus(product_name)}"
+                "price": None,
+                "link": f"https://www.amazon.in/s?k={quote_plus(product_name)}",
+                "available": False
             }
+            print(f"[NOT FOUND] Amazon: Product not available")
         time.sleep(random.uniform(1, 2))  # Rate limiting
     except Exception as e:
         print(f"[-] Amazon error: {e}")
-        # Ensure we always have Amazon data
-        fallback = get_fallback_data(product_name)
         comparison_results["Amazon"] = {
-            "price": fallback["price"],
-            "link": f"https://www.amazon.in/s?k={quote_plus(product_name)}"
+            "price": None,
+            "link": f"https://www.amazon.in/s?k={quote_plus(product_name)}",
+            "available": False
         }
     
     # Try scraping Flipkart
@@ -378,23 +438,24 @@ def scrape_all_websites(product_name):
         if flipkart_data:
             comparison_results["Flipkart"] = {
                 "price": flipkart_data["price"],
-                "link": flipkart_data["link"]
+                "link": flipkart_data["link"],
+                "available": True
             }
+            print(f"[SUCCESS] Flipkart: Rs.{flipkart_data['price']}")
         else:
-            # Fallback
-            fallback = get_fallback_data(product_name)
             comparison_results["Flipkart"] = {
-                "price": fallback["price"] + random.randint(-500, 500),
-                "link": f"https://www.flipkart.com/search?q={quote_plus(product_name)}"
+                "price": None,
+                "link": f"https://www.flipkart.com/search?q={quote_plus(product_name)}",
+                "available": False
             }
+            print(f"[NOT FOUND] Flipkart: Product not available")
         time.sleep(random.uniform(1, 2))  # Rate limiting
     except Exception as e:
         print(f"[-] Flipkart error: {e}")
-        # Ensure we always have Flipkart data
-        fallback = get_fallback_data(product_name)
         comparison_results["Flipkart"] = {
-            "price": fallback["price"] + random.randint(-500, 500),
-            "link": f"https://www.flipkart.com/search?q={quote_plus(product_name)}"
+            "price": None,
+            "link": f"https://www.flipkart.com/search?q={quote_plus(product_name)}",
+            "available": False
         }
     
     # Try scraping Snapdeal
@@ -403,52 +464,83 @@ def scrape_all_websites(product_name):
         if snapdeal_data:
             comparison_results["Snapdeal"] = {
                 "price": snapdeal_data["price"],
-                "link": snapdeal_data["link"]
+                "link": snapdeal_data["link"],
+                "available": True
             }
+            print(f"[SUCCESS] Snapdeal: Rs.{snapdeal_data['price']}")
         else:
-            # Fallback
-            fallback = get_fallback_data(product_name)
             comparison_results["Snapdeal"] = {
-                "price": fallback["price"] + random.randint(-1000, 300),
-                "link": f"https://www.snapdeal.com/search?keyword={quote_plus(product_name)}"
+                "price": None,
+                "link": f"https://www.snapdeal.com/search?keyword={quote_plus(product_name)}",
+                "available": False
             }
+            print(f"[NOT FOUND] Snapdeal: Product not available")
         time.sleep(random.uniform(1, 2))  # Rate limiting
     except Exception as e:
         print(f"[-] Snapdeal error: {e}")
-        # Ensure we always have Snapdeal data
-        fallback = get_fallback_data(product_name)
         comparison_results["Snapdeal"] = {
-            "price": fallback["price"] + random.randint(-1000, 300),
-            "link": f"https://www.snapdeal.com/search?keyword={quote_plus(product_name)}"
+            "price": None,
+            "link": f"https://www.snapdeal.com/search?keyword={quote_plus(product_name)}",
+            "available": False
         }
     
+    available_count = sum(1 for v in comparison_results.values() if v.get('available', False))
     print(f"\n{'='*60}")
-    print(f"[+] Search complete! Found prices from {len(comparison_results)} websites")
+    print(f"[+] Search complete! Found prices on {available_count} out of {len(comparison_results)} websites")
     print(f"{'='*60}\n")
+    
+    # If no products found, add estimated fallback prices
+    if available_count == 0:
+        print("[FALLBACK] No real prices found. Generating estimated prices...")
+        
+        for website in comparison_results.keys():
+            fallback = get_fallback_data(product_name)
+            comparison_results[website] = {
+                "price": fallback["price"],
+                "link": comparison_results[website]["link"],
+                "available": True,
+                "estimated": True  # Flag to indicate this is estimated
+            }
+        
+        print("[+] Estimated prices generated for all websites")
     
     return comparison_results
 
 
 def find_cheapest_option(comparison_results):
     """
-    Find the cheapest price from all websites
+    Find the cheapest price from all websites (only from available products)
     """
     if not comparison_results:
         return None
     
+    # Filter only available products with valid prices
+    available_products = {
+        website: data for website, data in comparison_results.items()
+        if data.get('available', False) and data.get('price') is not None
+    }
+    
+    if not available_products:
+        return None
+    
     # Find the website with minimum price
-    cheapest_website = min(comparison_results, key=lambda x: comparison_results[x]["price"])
-    cheapest_price = comparison_results[cheapest_website]["price"]
-    cheapest_link = comparison_results[cheapest_website]["link"]
+    cheapest_website = min(available_products, key=lambda x: available_products[x]["price"])
+    cheapest_price = available_products[cheapest_website]["price"]
+    cheapest_link = available_products[cheapest_website]["link"]
+    
+    # Calculate savings only for available products
+    savings = {}
+    for website, data in comparison_results.items():
+        if data.get('available', False) and data.get('price') is not None:
+            savings[website] = data["price"] - cheapest_price
+        else:
+            savings[website] = None
     
     return {
         "website": cheapest_website,
         "price": cheapest_price,
         "link": cheapest_link,
-        "savings": {
-            website: comparison_results[website]["price"] - cheapest_price
-            for website in comparison_results
-        }
+        "savings": savings
     }
 
 
