@@ -386,7 +386,7 @@ if __name__ == "__main__":
     model, evaluation, training_result = train_model_from_csv(csv_path, product_name)
     
     # Show results
-    print(f"✓ {training_result['message']}\n")
+    print(f"[+] {training_result['message']}\n")
     
     print("📊 Model Evaluation Metrics:")
     for metric, value in evaluation.items():

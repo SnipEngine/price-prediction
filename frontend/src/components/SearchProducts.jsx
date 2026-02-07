@@ -22,11 +22,18 @@ function SearchProducts({ onSearch }) {
       )
 
       if (!response.ok) {
-        throw new Error('Product not found')
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.detail || 'Product not found')
       }
 
       const data = await response.json()
+      console.log('Search results:', data) // Debug log
       onSearch(data)
+      
+      // Scroll to results after a short delay
+      setTimeout(() => {
+        window.scrollTo({ top: 800, behavior: 'smooth' })
+      }, 300)
     } catch (err) {
       setError(err.message || 'Failed to search products')
       console.error('Search error:', err)

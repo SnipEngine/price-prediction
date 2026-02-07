@@ -91,7 +91,7 @@ def initialize_database():
     # Save all changes to database
     connection.commit()
     connection.close()
-    print("✓ Database initialized successfully!")
+    print("[+] Database initialized successfully!")
 
 
 def add_product(product_id, product_name, category):

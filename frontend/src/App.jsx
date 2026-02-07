@@ -33,7 +33,7 @@ function App() {
 
   const handleSearch = (data) => {
     setComparisonData(data)
-    setActiveTab('comparison')
+    // Stay on search tab to show results below
   }
 
   const handleProductSelect = (productId) => {
@@ -108,8 +108,12 @@ function App() {
 
         {/* Tab Content */}
         <div className="animate-fade-in">
-          {activeTab === 'search' && <SearchProducts onSearch={handleSearch} />}
-          {activeTab === 'comparison' && comparisonData && <ComparisonResults data={comparisonData} />}
+          {activeTab === 'search' && (
+            <div className="space-y-8">
+              <SearchProducts onSearch={handleSearch} />
+              {comparisonData && <ComparisonResults data={comparisonData} />}
+            </div>
+          )}
           {activeTab === 'products' && <ProductsList onSelectProduct={handleProductSelect} />}
           {activeTab === 'history' && <PriceHistory productId={selectedProductId} />}
           {activeTab === 'prediction' && <PricePrediction />}

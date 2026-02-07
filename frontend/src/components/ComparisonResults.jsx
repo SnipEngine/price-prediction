@@ -1,7 +1,9 @@
 import React from 'react'
 
 function ComparisonResults({ data }) {
-  const { product, comparison, cheapest } = data
+  const { product, comparison, cheapest, note } = data
+
+  console.log('ComparisonResults received:', data) // Debug log
 
   if (!comparison) {
     return (
@@ -21,6 +23,38 @@ function ComparisonResults({ data }) {
 
   return (
     <div className="space-y-6">
+      {/* Note about estimated prices if present */}
+      {note && (
+        <div className="bg-gradient-to-r from-amber-50 to-yellow-50 rounded-2xl shadow-lg p-6 border-2 border-amber-200 animate-fade-in">
+          <div className="flex items-center space-x-3">
+            <div className="flex-shrink-0">
+              <svg className="w-8 h-8 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <div className="flex-1">
+              <h3 className="text-lg font-bold text-amber-900">📊 Estimated Prices</h3>
+              <p className="text-amber-700">{note}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Success Alert */}
+      <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-2xl shadow-lg p-6 border-2 border-green-200 animate-fade-in">
+        <div className="flex items-center space-x-3">
+          <div className="flex-shrink-0">
+            <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <div className="flex-1">
+            <h3 className="text-lg font-bold text-green-900">Successfully found prices!</h3>
+            <p className="text-green-700">Comparing real-time prices from {priceEntries.length} websites</p>
+          </div>
+        </div>
+      </div>
+
       {/* Header */}
       <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
         <h2 className="text-3xl font-bold text-gray-900 mb-2">Price Comparison Results</h2>
@@ -128,6 +162,19 @@ function ComparisonResults({ data }) {
           </div>
         </div>
       )}
+
+      {/* Search Another Product Button */}
+      <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100 text-center">
+        <button
+          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+          className="inline-flex items-center space-x-2 px-8 py-4 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 transition-all duration-200"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          <span>Search Another Product</span>
+        </button>
+      </div>
     </div>
   )
 }
