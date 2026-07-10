@@ -17,7 +17,7 @@ function App() {
   useEffect(() => {
     const checkHealth = async () => {
       try {
-        const response = await fetch('http://127.0.0.1:8000/api/health')
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/health`)
         setApiHealth(response.ok)
       } catch (error) {
         setApiHealth(false)
@@ -97,7 +97,7 @@ function App() {
                 <div className="flex-1">
                   <h3 className="text-red-800 font-semibold">Backend Service Unavailable</h3>
                   <p className="text-red-600 text-sm mt-1">
-                    Unable to connect to API at <code className="bg-red-100 px-2 py-0.5 rounded">http://127.0.0.1:8000</code>. 
+                    Unable to connect to API at <code className="bg-red-100 px-2 py-0.5 rounded">{import.meta.env.VITE_API_URL}</code>. 
                     Please ensure the backend server is running.
                   </p>
                 </div>
