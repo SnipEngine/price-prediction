@@ -18,7 +18,8 @@ function SearchProducts({ onSearch }) {
 
     try {
       const response = await fetch(
-        `http://127.0.0.1:8000/api/compare-prices?product_name=${encodeURIComponent(productName)}`
+  `${import.meta.env.VITE_API_URL}/api/compare-prices?product_name=${encodeURIComponent(productName)}`
+)`
       )
 
       if (!response.ok) {
