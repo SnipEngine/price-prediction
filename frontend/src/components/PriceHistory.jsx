@@ -24,9 +24,9 @@ export default function PriceHistory({ productId }) {
     
     try {
       setLoading(true)
-      const response = await fetch(
-        `http://127.0.0.1:8000/api/price-history?product_id=${productId}`
-      )
+     const response = await fetch(
+  `${import.meta.env.VITE_API_URL}/api/price-history?product_id=${productId}`
+)
 
       if (!response.ok) {
         throw new Error('Failed to fetch price history')
