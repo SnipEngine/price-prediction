@@ -23,8 +23,8 @@ function PricePrediction() {
 
     try {
       const response = await fetch(
-        `http://127.0.0.1:8000/api/predict-price?product_id=${productId}&days_ahead=${daysAhead}`
-      )
+  `${import.meta.env.VITE_API_URL}/api/predict-price?product_id=${productId}&days_ahead=${daysAhead}`
+)
 
       if (!response.ok) {
         const errorData = await response.json()
